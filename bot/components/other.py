@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 from aiogram import types, Dispatcher
 from bot_init import dp
 from keyboards import admin_kb
@@ -22,7 +22,6 @@ class Project(StatesGroup):
     caption = State()
     name = State()
     description = State()
-    pub_date = State()
     manager = State()
     designerless = State()
     discount = State()
@@ -198,32 +197,35 @@ async def additional_tools_check(message : types.Message, state : FSMContext):
     elif message.text == 'Нет':
         async with state.proxy() as data:
             data['additional_tools'] = 0
-        await Project.next()
+        await Project.total_price.set()
         await message.answer('Введи расчётную стоимость проекта', reply_markup = ReplyKeyboardRemove())
     else:
         async with state.proxy() as data:
-            data['additional_tools'] = message.text
-        await Project.next()
+            data['additional_tools'] = str(message.text)
+        await Project.total_price.set()
         await message.answer('Введи расчётную стоимость проекта', reply_markup = ReplyKeyboardRemove())
 
 async def add_new_proj(message : types.Message, state : FSMContext):
     async with state.proxy() as data:
-            data['total_price'] = float(message.text)
-            data['pub_date'] = str(datetime.date.today())
-            caption = data['name'] + ' / ' + str(data['total_price']) + ' руб. / ' + str(data['pub_date'])
-            data['caption'] = caption
-            data['manager'] = str(message.from_user.id)
-            resp_api = await new_project(data._data)
+        data['total_price'] = float(message.text)
+        caption = data['name'] + ' / ' + str(data['total_price']) + ' руб. / ' + str(date.today())
+        data['caption'] = caption
+        data['manager'] = str(message.from_user.id)
+        await message.answer(data._data)
+        resp_api = await new_project(data._data)
     await state.finish()
     await message.answer('OK. ' + resp_api['msg'], reply_markup = ReplyKeyboardRemove())
 
 # Регистрация хедлеров
 
 def register_handlers_managment(dp : Dispatcher):
+
     dp.register_message_handler(cancel_handler, Text(equals = 'отмена', ignore_case = True), state = "*")
+
     dp.register_message_handler(get_pass, state = Managment.step_1)
     dp.register_message_handler(staff_second_level_menu, state = Managment.step_2)
     dp.register_message_handler(add_proj, Text(equals = 'Добавить новый проект'), state = Managment.proj_manage)
+
     dp.register_message_handler(save_proj_name, state = Project.name)
     dp.register_message_handler(save_proj_description, state = Project.description)
     dp.register_message_handler(designerless_check, state = Project.designerless)
@@ -232,6 +234,7 @@ def register_handlers_managment(dp : Dispatcher):
     dp.register_message_handler(upshipping_check, state = Project.up_shipping)
     dp.register_message_handler(additional_tools_check, state = Project.additional_tools)
     dp.register_message_handler(add_new_proj, state = Project.total_price)
+
     dp.register_message_handler(save_name, state = User.name)
     dp.register_message_handler(save_bdate, state = User.birthdate)
     dp.register_message_handler(save_gender, state = User.gender)
