@@ -1,4 +1,4 @@
-from multiprocessing.connection import wait
+from datetime import datetime
 from aiogram import types, Dispatcher
 from bot_init import dp
 from keyboards import admin_kb
@@ -43,15 +43,15 @@ class Managment(StatesGroup):
 
 # Функции обращения к API системы
 
-async def usr_ident(usr_id):
-    async with aiohttp.ClientSession() as session:
-        async with session.post('http://152.67.75.74/crm/sets_api/', json = {'ID':usr_id, 'head':'user_ident'}) as resp:
-            response = await resp.json()
-            return(response)
-
 async def get_positions():
     async with aiohttp.ClientSession() as session:
         async with session.get('http://152.67.75.74/crm/main_data/') as resp:
+            response = await resp.json()
+            return(response)
+
+async def usr_ident(usr_id):
+    async with aiohttp.ClientSession() as session:
+        async with session.post('http://152.67.75.74/crm/sets_api/', json = {'ID':usr_id, 'head':'user_ident'}) as resp:
             response = await resp.json()
             return(response)
 
@@ -59,6 +59,13 @@ async def new_user(usr):
     usr.update({'head':'new_user'})
     async with aiohttp.ClientSession() as session:
         async with session.post('http://152.67.75.74/crm/sets_api/', json = usr) as resp:
+            response = await resp.json()
+            return(response)
+
+async def new_project(prjt):
+    prjt.update({'head':'new_proj'})
+    async with aiohttp.ClientSession() as session:
+        async with session.post('http://152.67.75.74/crm/sets_api/', json = prjt) as resp:
             response = await resp.json()
             return(response)
 
@@ -82,8 +89,8 @@ async def save_gender(message : types.Message, state : FSMContext):
     await User.next()
     await message.answer('Выберете свою должность:', reply_markup = ReplyKeyboardRemove())
     resp_api = await get_positions()
-    for i in range(resp_api['pos_counter'] - 2):
-        content = 'Вариант ' + str(i + 1) + ': ' + resp_api[str(i + 3)]
+    for i in range(resp_api['positions']['pos_counter'] - 2):
+        content = 'Вариант ' + str(i + 1) + ': ' + resp_api['positions'][str(i + 3)]
         await message.answer(content)
     await message.answer('Напиши номер варианта')
 
@@ -97,6 +104,7 @@ async def save_position(message : types.Message, state : FSMContext):
     await state.finish()
 
 # Отмена процесса
+
 async def cancel_handler(message : types.Message, state : FSMContext):
     current_state = await state.get_state()
     if current_state is None:
@@ -105,6 +113,7 @@ async def cancel_handler(message : types.Message, state : FSMContext):
     await message.answer('Ok')
 
 # Проверка  пароля сотрудника
+
 async def get_pass(message : types.Message, state : FSMContext):
     async with state.proxy() as data:
         data['step_1'] = message.text
@@ -159,18 +168,71 @@ async def construct_check(message : types.Message, state : FSMContext):
         data['construct'] = 2
         if message.text == 'Да': 
             data['construct'] = 1
+    await Project.next()
     await message.answer('А доставка?', reply_markup = admin_kb.yes_no_kb)
 
+async def shipping_check(message : types.Message, state : FSMContext):
+    async with state.proxy() as data:
+        data['shipping'] = 2
+        if message.text == 'Да': 
+            data['shipping'] = 1
+    await Project.next()
+    await message.answer('С подъёмом?', reply_markup = admin_kb.yes_no_kb)
+
+async def upshipping_check(message : types.Message, state : FSMContext):
+    async with state.proxy() as data:
+        data['up_shipping'] = 2
+        if message.text == 'Да': 
+            data['up_shipping'] = 1
+    await Project.next()
+    await message.answer('Дополнительная техника будет в заказе? (можно будет добавить потом)', reply_markup = admin_kb.yes_no_kb)
+
+async def additional_tools_check(message : types.Message, state : FSMContext):
+    if message.text == 'Да':
+        await message.answer('Выберете дополнительную технику:', reply_markup = ReplyKeyboardRemove())
+        resp_api = await get_positions()
+        for i in range(resp_api['tools']['tool_counter']):
+            content = 'Вариант ' + str(i + 1) + ': ' + resp_api['tools'][str(i + 1)]
+            await message.answer(content)
+        await message.answer('Напиши номера вариантов через запятую')
+    elif message.text == 'Нет':
+        async with state.proxy() as data:
+            data['additional_tools'] = 0
+        await Project.next()
+        await message.answer('Введи расчётную стоимость проекта', reply_markup = ReplyKeyboardRemove())
+    else:
+        async with state.proxy() as data:
+            data['additional_tools'] = message.text
+        await Project.next()
+        await message.answer('Введи расчётную стоимость проекта', reply_markup = ReplyKeyboardRemove())
+
+async def add_new_proj(message : types.Message, state : FSMContext):
+    async with state.proxy() as data:
+            data['total_price'] = float(message.text)
+            data['pub_date'] = str(datetime.date.today())
+            caption = data['name'] + ' / ' + str(data['total_price']) + ' руб. / ' + str(data['pub_date'])
+            data['caption'] = caption
+            data['manager'] = str(message.from_user.id)
+            resp_api = await new_project(data._data)
+    await state.finish()
+    await message.answer('OK. ' + resp_api['msg'], reply_markup = ReplyKeyboardRemove())
+
 # Регистрация хедлеров
+
 def register_handlers_managment(dp : Dispatcher):
+    dp.register_message_handler(cancel_handler, Text(equals = 'отмена', ignore_case = True), state = "*")
     dp.register_message_handler(get_pass, state = Managment.step_1)
     dp.register_message_handler(staff_second_level_menu, state = Managment.step_2)
     dp.register_message_handler(add_proj, Text(equals = 'Добавить новый проект'), state = Managment.proj_manage)
     dp.register_message_handler(save_proj_name, state = Project.name)
     dp.register_message_handler(save_proj_description, state = Project.description)
     dp.register_message_handler(designerless_check, state = Project.designerless)
+    dp.register_message_handler(construct_check, state = Project.construct)
+    dp.register_message_handler(shipping_check, state = Project.shipping)
+    dp.register_message_handler(upshipping_check, state = Project.up_shipping)
+    dp.register_message_handler(additional_tools_check, state = Project.additional_tools)
+    dp.register_message_handler(add_new_proj, state = Project.total_price)
     dp.register_message_handler(save_name, state = User.name)
     dp.register_message_handler(save_bdate, state = User.birthdate)
     dp.register_message_handler(save_gender, state = User.gender)
     dp.register_message_handler(save_position, state = User.position)
-    dp.register_message_handler(cancel_handler, Text(equals = 'отмена', ignore_case = True), state = "*")

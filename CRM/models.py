@@ -73,6 +73,19 @@ class Status(models.Model):
     def __str__(self):
         return self.name
 
+class Resources_type(models.Model):
+    caption = models.CharField(max_length = 50, verbose_name = "Наименование")
+    def __str__(self):
+        return self.caption
+
+class Resource(models.Model):
+    caption = models.CharField(max_length = 50, verbose_name = "Наименование")
+    dimention = models.CharField(max_length = 20, verbose_name = "Единицы измерения")
+    r_type = models.ForeignKey(Resources_type, verbose_name = "Тип", on_delete = models.CASCADE)
+    price = models.FloatField(default = 0, verbose_name = "Цена за единицу")
+    def __str__(self):
+        return self.caption
+
 class Tool(models.Model):
     caption = models.CharField(max_length = 200, verbose_name = "Наименование")
     name = models.CharField(max_length = 200)
@@ -91,9 +104,9 @@ class Project(models.Model):
     designerless = models.BooleanField(default = False, verbose_name = "Промо 10% (не дизайнерский)")
     discount = models.FloatField(default = 0, verbose_name = "Дополнительная скидка, %")
     map_price = models.FloatField(default = 0, verbose_name = "МРЦ")
-    construct = models.BooleanField(default = True, verbose_name = "Сборка")
-    shipping = models.BooleanField(default = True, verbose_name = "Доставка")
-    up_shipping = models.BooleanField(default = True, verbose_name = "Подъем")
+    construct = models.BooleanField(default = False, verbose_name = "Сборка")
+    shipping = models.BooleanField(default = False, verbose_name = "Доставка")
+    up_shipping = models.BooleanField(default = False, verbose_name = "Подъем")
     additional_tools = models.ManyToManyField(Tool, verbose_name = "Дополнительная техника")
     total_price = models.FloatField(default = 0, verbose_name = "Итоговая стоимость")
     def __str__(self):

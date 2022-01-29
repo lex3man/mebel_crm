@@ -1,7 +1,9 @@
+from datetime import datetime
+from pickle import NONE
 from django.http import HttpResponse, request, JsonResponse
 from django.views import View
 import json
-from .models import User, Gender, Position, Tool, Project, QType, Question, Wizard_step, UserGroup
+from .models import User, Gender, Position, UserGroup, Tool, Project
 
 def index(request):
     return HttpResponse("CRM система Добромебель")
@@ -12,11 +14,23 @@ def add_proj(request):
 class main_data(View):
     def get(self, request):
         data = {}
+
+        positions = {}
         counter = 0
         for pos in Position.objects.all():
             counter += 1
-            data.update({counter:pos.caption})
-        data.update({'pos_counter':counter})
+            positions.update({counter:pos.caption})
+        positions.update({'pos_counter':counter})
+        data.update({'positions':positions})
+
+        tools = {}
+        counter = 0
+        for tool in Tool.objects.all():
+            counter += 1
+            tools.update({counter:tool.caption})
+        tools.update({'tool_counter':counter})
+        data.update({'tools':tools})
+
         return JsonResponse(data)
 
 class web_hook(View):
@@ -77,4 +91,38 @@ class web_hook(View):
             data = {
                 'msg':'Пользователь зарегистрирован. '
             }
+
+        if head == 'new_proj':
+            try: proj_manager = User.objects.get(ID = json_body.get('manager'))
+            except: proj_manager = NONE
+            get_tools = str(json_body.get('additional_tools')).replace(' ', '')
+            tools = get_tools.split(',')
+            add_proj = Project(
+                caption = json_body.get('name'),
+                description = json_body.get('description'),
+                name = json_body.get('caption'),
+                manager = proj_manager,
+                pub_date = datetime.now(),
+                discount = 0,
+                map_price = float(json_body.get('total_price')),
+                total_price = float(json_body.get('total_price')) * 2.7
+            )
+            add_proj.save()
+            if json_body.get('designerless') == 1:
+                add_proj.designerless = True
+                add_proj.total_price = (float(json_body.get('total_price')) * 2.7) * 0.9
+            if json_body.get('construct') == 1:
+                add_proj.construct = True
+            if json_body.get('shipping') == 1:
+                add_proj.shipping = True
+            if json_body.get('up_shipping') == 1:
+                add_proj.up_shipping = True
+            if get_tools is not 0:
+                counter = 1
+                for tool in Tool.objects.all():
+                    if str(counter) in tools:
+                        add_proj.additional_tools.add(tool)
+                    counter += 1
+            add_proj.save()
+            data = {'msg':'Проект успешно добавлен'}
         return JsonResponse(data)
