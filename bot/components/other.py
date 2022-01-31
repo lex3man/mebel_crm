@@ -42,7 +42,7 @@ class Managment(StatesGroup):
 
 # Функции обращения к API системы
 
-async def get_positions():
+async def get_datas():
     async with aiohttp.ClientSession() as session:
         async with session.get('http://152.67.75.74/crm/main_data/') as resp:
             response = await resp.json()
@@ -88,7 +88,7 @@ async def save_gender(message : types.Message, state : FSMContext):
         data['teleg'] = message.from_user.username
         data['ID'] = message.from_user.id
     await User.next()
-    resp_api = await get_positions()
+    resp_api = await get_datas()
     keyboard = await admin_kb.position_choise(resp_api)
     await message.answer('Хорошо!', reply_markup = ReplyKeyboardRemove())
     await message.answer('Теперь выберите свою должность:', reply_markup = keyboard)
@@ -188,7 +188,7 @@ async def upshipping_check(message : types.Message, state : FSMContext):
 async def additional_tools_check(message : types.Message, state : FSMContext):
     if message.text == 'Да':
         await message.answer('Выберете дополнительную технику:', reply_markup = ReplyKeyboardRemove())
-        resp_api = await get_positions()
+        resp_api = await get_datas()
         for i in range(resp_api['tools']['tool_counter']):
             content = 'Вариант ' + str(i + 1) + ': ' + resp_api['tools'][str(i + 1)]
             await message.answer(content)
@@ -215,6 +215,24 @@ async def add_new_proj(message : types.Message, state : FSMContext):
     await state.finish()
     await message.answer('OK. ' + resp_api['msg'], reply_markup = admin_kb.default_kb)
 
+# Функции редактирования проекта
+
+async def projects_list(message : types.Message, state : FSMContext):
+    resp_api = await get_datas()
+    keyboard = await admin_kb.project_choise(resp_api)
+    await Project.caption.set()
+    await message.answer('Хорошо!', reply_markup = ReplyKeyboardRemove())
+    await message.answer('Какой проект будем едактировать?', reply_markup = keyboard)
+
+async def edit_project(callback_query : types.CallbackQuery, state : FSMContext):
+    async with state.proxy() as data:
+        data['caption'] = callback_query.data
+    proj_id = int(data['caption'])
+    resp_api = await get_datas()
+    keyboard = await admin_kb.proj_attributes(resp_api, proj_id)
+    await bot.send_message(callback_query.from_user.id, text = 'Что редактируем?', reply_markup = keyboard)
+
+
 # Регистрация хедлеров
 
 def register_handlers_managment(dp : Dispatcher):
@@ -224,6 +242,7 @@ def register_handlers_managment(dp : Dispatcher):
     dp.register_message_handler(get_pass, state = Managment.step_1)
     dp.register_message_handler(staff_second_level_menu, state = Managment.step_2)
     dp.register_message_handler(add_proj, Text(equals = 'Добавить новый проект'), state = Managment.proj_manage)
+    dp.register_message_handler(projects_list, Text(equals = 'Редавтировать существующий проект'), state = Managment.proj_manage)
 
     dp.register_message_handler(save_proj_name, state = Project.name)
     dp.register_message_handler(save_proj_description, state = Project.description)
@@ -233,6 +252,8 @@ def register_handlers_managment(dp : Dispatcher):
     dp.register_message_handler(upshipping_check, state = Project.up_shipping)
     dp.register_message_handler(additional_tools_check, state = Project.additional_tools)
     dp.register_message_handler(add_new_proj, state = Project.total_price)
+
+    dp.register_callback_query_handler(edit_project, state = Project.caption)
 
     dp.register_message_handler(save_name, state = User.name)
     dp.register_message_handler(save_bdate, state = User.birthdate)

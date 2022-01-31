@@ -1,5 +1,6 @@
 from datetime import datetime
 from pickle import NONE
+from unicodedata import name
 from django.http import HttpResponse, request, JsonResponse
 from django.views import View
 import json
@@ -30,6 +31,20 @@ class main_data(View):
             tools.update({counter:tool.caption})
         tools.update({'tool_counter':counter})
         data.update({'tools':tools})
+
+        projects = {}
+        counter = 0
+        for project in Project.objects.all():
+            counter += 1
+            project_details = {}
+            attr_count = 0
+            for field in Project._meta.get_fields():
+                attr_count += 1
+                project_details.update({field.name:field.value_from_object(project)})
+            projects.update({counter:project_details})
+        projects.update({'projects_counter':counter})
+        projects.update({'attr_counter':attr_count})
+        data.update({'projects':projects})
 
         return JsonResponse(data)
 
