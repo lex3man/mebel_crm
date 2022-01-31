@@ -6,6 +6,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from components.other import Managment, usr_ident
 from keyboards import admin_kb
+from aiogram.dispatcher.filters import Text
 
 class Controller(StatesGroup):
     start = State()
@@ -47,5 +48,6 @@ async def get_contact(message : types.Message, state : FSMContext):
 
 def register_handlers(dp : Dispatcher):
     dp.register_message_handler(send_welcome, commands = ['start', 'help'])
+    dp.register_message_handler(send_welcome, Text(equals = 'Главное меню', ignore_case = True), state = "*")
     dp.register_message_handler(fist_step, state = Controller.start)
     dp.register_message_handler(get_contact, content_types = 'contact', state = Controller.order)

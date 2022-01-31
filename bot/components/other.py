@@ -1,6 +1,6 @@
 from datetime import date
 from aiogram import types, Dispatcher
-from bot_init import dp
+from bot_init import dp, bot
 from keyboards import admin_kb
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.dispatcher import FSMContext
@@ -85,21 +85,20 @@ async def save_bdate(message : types.Message, state : FSMContext):
 async def save_gender(message : types.Message, state : FSMContext):
     async with state.proxy() as data:
         data['gender'] = message.text
-    await User.next()
-    await message.answer('Выберете свою должность:', reply_markup = ReplyKeyboardRemove())
-    resp_api = await get_positions()
-    for i in range(resp_api['positions']['pos_counter'] - 2):
-        content = 'Вариант ' + str(i + 1) + ': ' + resp_api['positions'][str(i + 3)]
-        await message.answer(content)
-    await message.answer('Напиши номер варианта')
-
-async def save_position(message : types.Message, state : FSMContext):
-    async with state.proxy() as data:
-        data['position'] = message.text
         data['teleg'] = message.from_user.username
         data['ID'] = message.from_user.id
+    await User.next()
+    resp_api = await get_positions()
+    keyboard = await admin_kb.position_choise(resp_api)
+    await message.answer('Хорошо!', reply_markup = ReplyKeyboardRemove())
+    await message.answer('Теперь выберите свою должность:', reply_markup = keyboard)
+
+async def save_position(callback_query : types.CallbackQuery, state : FSMContext):
+    async with state.proxy() as data:
+        data['position'] = callback_query.data
         resp_api = await new_user(data._data)
-    await message.answer(resp_api['msg'] + 'Дождитесь назначения уровня доступа')
+    await callback_query.answer(resp_api['msg'] + 'Дождитесь назначения уровня доступа')
+    await bot.send_message(callback_query.from_user.id, text = 'Спасибо, Вы зарегистрированны!', reply_markup = admin_kb.default_kb)
     await state.finish()
 
 # Отмена процесса
@@ -126,7 +125,7 @@ async def get_pass(message : types.Message, state : FSMContext):
             await message.answer('Введите своё имя')
         if resp_api['stat'] == 1:
             await Managment.next()
-            await message.answer('Выберете нужный раздел', reply_markup = admin_kb.manager_menu_kb)
+            await message.answer('Выберите нужный раздел', reply_markup = admin_kb.manager_menu_kb)
     else: await message.answer('Пароль неверный, попробуйте ещё раз')
 
 async def staff_second_level_menu(message : types.Message, state : FSMContext):
@@ -214,7 +213,7 @@ async def add_new_proj(message : types.Message, state : FSMContext):
         await message.answer(data._data)
         resp_api = await new_project(data._data)
     await state.finish()
-    await message.answer('OK. ' + resp_api['msg'], reply_markup = ReplyKeyboardRemove())
+    await message.answer('OK. ' + resp_api['msg'], reply_markup = admin_kb.default_kb)
 
 # Регистрация хедлеров
 
@@ -238,4 +237,4 @@ def register_handlers_managment(dp : Dispatcher):
     dp.register_message_handler(save_name, state = User.name)
     dp.register_message_handler(save_bdate, state = User.birthdate)
     dp.register_message_handler(save_gender, state = User.gender)
-    dp.register_message_handler(save_position, state = User.position)
+    dp.register_callback_query_handler(save_position, state = User.position)
