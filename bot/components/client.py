@@ -1,5 +1,5 @@
 from aiogram import types, Dispatcher
-from bot_init import dp, bot
+from bot_init import dp, bot, config_request
 from keyboards import client_kb
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.dispatcher import FSMContext
@@ -7,6 +7,8 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from components.other import Managment, usr_ident
 from keyboards import admin_kb
 from aiogram.dispatcher.filters import Text
+
+bot_conf = config_request("Dobromebel")
 
 class Controller(StatesGroup):
     start = State()
@@ -21,7 +23,7 @@ async def send_welcome(message : types.Message):
     resp_api = await usr_ident(ID)
     if resp_api['stat'] == 0:
         try:
-            await bot.send_message(message.from_user.id, "Привет! Пока я работаю только для сотредников компании. Но скоро я научусь помогать людям в выборе мебели и кухонь для воплощения лучших условий и комфорта в доме для всей семьи!", reply_markup = client_kb.start_kb)
+            await bot.send_message(message.from_user.id, bot_conf['start_message'], reply_markup = client_kb.start_kb)
             await message.delete()
             await Controller.start.set()
         except: await message.reply("Напиши сначала болу в ЛС")

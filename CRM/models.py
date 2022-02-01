@@ -4,6 +4,13 @@ from unicodedata import name
 from django.db import models
 from datetime import datetime
 
+class Bot_config(models.Model):
+    bot_name = models.CharField(verbose_name = 'Наименование бота', max_length=50)
+    tgbot_token = models.CharField(verbose_name = 'Telegram API токен', max_length=50)
+    start_message = models.TextField(verbose_name = 'Текст приветственного сообщения на команду "/start"')
+    def __str__(self):
+        return self.bot_name
+
 class Gender(models.Model):
     name = models.CharField(max_length = 10)
     code = models.CharField(max_length = 10)
@@ -98,7 +105,7 @@ class Tool(models.Model):
 class Project(models.Model):
     caption = models.CharField(max_length = 200, verbose_name = "Наименование проекта")
     description = models.CharField(max_length = 500, default = '', verbose_name = "Описание проекта")
-    name = models.CharField(max_length = 200)
+    name = models.CharField(max_length = 200, verbose_name = "Отображаемое имя проекта")
     pub_date = models.DateTimeField(default = datetime.now, verbose_name = "Создан")
     manager = models.ForeignKey(User, verbose_name = "Ответственный", on_delete = models.CASCADE, default = 0)
     designerless = models.BooleanField(default = False, verbose_name = "Промо 10% (не дизайнерский)")

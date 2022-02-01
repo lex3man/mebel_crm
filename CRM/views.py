@@ -4,7 +4,7 @@ from unicodedata import name
 from django.http import HttpResponse, request, JsonResponse
 from django.views import View
 import json
-from .models import User, Gender, Position, UserGroup, Tool, Project
+from .models import User, Gender, Position, UserGroup, Tool, Project, Bot_config
 
 def index(request):
     return HttpResponse("CRM система Добромебель")
@@ -40,7 +40,8 @@ class main_data(View):
             attr_count = 0
             for field in Project._meta.get_fields():
                 attr_count += 1
-                project_details.update({field.name:field.value_from_object(project)})
+                ser_data = json.dumps(field.value_from_object(project), separators=(',', ':'), ensure_ascii = False, default = str)
+                project_details.update({field.verbose_name:ser_data})
             projects.update({counter:project_details})
         projects.update({'projects_counter':counter})
         projects.update({'attr_counter':attr_count})
@@ -52,6 +53,15 @@ class web_hook(View):
     def post(self, request):
         json_body = json.loads(request.body)
         head = json_body.get('head')
+
+        if head == 'bot_config':
+            get_bot_name = json_body.get('bot_name')
+            get_config = Bot_config.objects.get(bot_name = get_bot_name)
+            data = {
+                'TOKEN':get_config.tgbot_token,
+                'Start_message':get_config.start_message
+            }
+        
         if head == 'user_ident':
             data = {
                 'msg':'Вы ещё не зарегистрированны в системе. ',
@@ -78,6 +88,7 @@ class web_hook(View):
                     'msg':'Error! ',
                     'stat':0,
                 }
+        
         if head == 'new_user':
             usr_name = json_body.get('name')
             usr_id = json_body.get('ID')
@@ -140,4 +151,5 @@ class web_hook(View):
                     counter += 1
             add_proj.save()
             data = {'msg':'Проект успешно добавлен'}
+
         return JsonResponse(data)

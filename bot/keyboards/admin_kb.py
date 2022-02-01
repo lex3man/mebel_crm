@@ -20,7 +20,7 @@ manager_menu_kb.add(manager_menu_kb_b1).insert(manager_menu_kb_b2).add(manager_m
 # Меню управления проектами
 proj_managment_kb = ReplyKeyboardMarkup(resize_keyboard = True)
 proj_managment_kb_b1 = KeyboardButton('Добавить новый проект')
-proj_managment_kb_b2 = KeyboardButton('Редавтировать существующий проект')
+proj_managment_kb_b2 = KeyboardButton('Редактировать существующий проект')
 proj_managment_kb.add(proj_managment_kb_b1).add(proj_managment_kb_b2)
 
 # Да/Нет
@@ -44,7 +44,7 @@ async def project_choise(data):
     project_choise_kb = InlineKeyboardMarkup(row_width = 2)
     proj_choise_kb_b = []
     for i in range(data['projects']['projects_counter']):
-        content = data['projects'][str(i + 1)]['name']
+        content = data['projects'][str(i + 1)]['Отображаемое имя проекта']
         proj_choise_kb_b.append(InlineKeyboardButton(content, callback_data = str(i + 1)))
         project_choise_kb.add(proj_choise_kb_b[i])
     return project_choise_kb

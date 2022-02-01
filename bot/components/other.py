@@ -1,6 +1,6 @@
 from datetime import date
 from aiogram import types, Dispatcher
-from bot_init import dp, bot
+from bot_init import dp, bot, config_request
 from keyboards import admin_kb
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.dispatcher import FSMContext
@@ -9,6 +9,7 @@ from aiogram.dispatcher.filters import Text
 import aiohttp
 
 ID = None
+bot_conf = config_request("Dobromebel")
 
 class User(StatesGroup):
     name = State()
@@ -108,7 +109,7 @@ async def cancel_handler(message : types.Message, state : FSMContext):
     if current_state is None:
         return
     await state.finish()
-    await message.answer('Ok')
+    await message.answer('Ok', reply_markup = admin_kb.default_kb)
 
 # Проверка  пароля сотрудника
 
@@ -242,7 +243,7 @@ def register_handlers_managment(dp : Dispatcher):
     dp.register_message_handler(get_pass, state = Managment.step_1)
     dp.register_message_handler(staff_second_level_menu, state = Managment.step_2)
     dp.register_message_handler(add_proj, Text(equals = 'Добавить новый проект'), state = Managment.proj_manage)
-    dp.register_message_handler(projects_list, Text(equals = 'Редавтировать существующий проект'), state = Managment.proj_manage)
+    dp.register_message_handler(projects_list, Text(equals = 'Редактировать существующий проект'), state = Managment.proj_manage)
 
     dp.register_message_handler(save_proj_name, state = Project.name)
     dp.register_message_handler(save_proj_description, state = Project.description)
