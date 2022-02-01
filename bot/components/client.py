@@ -1,5 +1,5 @@
 from aiogram import types, Dispatcher
-from bot_init import dp, bot, config_request
+from bot_init import dp, bot
 from keyboards import client_kb
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.dispatcher import FSMContext
@@ -7,8 +7,14 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from components.other import Managment, usr_ident
 from keyboards import admin_kb
 from aiogram.dispatcher.filters import Text
+import aiohttp
 
-bot_conf = config_request("Dobromebel")
+# Функции обращения к API системы
+async def get_config(bot_name):
+    async with aiohttp.ClientSession() as session:
+        async with session.post('http://152.67.75.74/crm/sets_api/', json = {'bot_name':bot_name, 'head':'bot_config'}) as resp:
+            response = await resp.json()
+            return(response)
 
 class Controller(StatesGroup):
     start = State()
@@ -20,10 +26,12 @@ async def send_welcome(message : types.Message):
     # Бота можно добавить в группу и он может отвечать в личку или там, если ранее пользователь боту не писал
     global ID
     ID = message.from_user.id
+    config = await get_config('Dobromebel')
     resp_api = await usr_ident(ID)
     if resp_api['stat'] == 0:
         try:
-            await bot.send_message(message.from_user.id, bot_conf['start_message'], reply_markup = client_kb.start_kb)
+            start_message = config['Start_message']
+            await bot.send_message(message.from_user.id, start_message, reply_markup = client_kb.start_kb)
             await message.delete()
             await Controller.start.set()
         except: await message.reply("Напиши сначала болу в ЛС")
