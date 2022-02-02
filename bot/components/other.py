@@ -20,8 +20,12 @@ class User(StatesGroup):
     ID = State()
 
 class Project(StatesGroup):
+#    production = State() # Своё производство или Ульяновское
     caption = State()
     name = State()
+#    address = State()
+#    client = State()
+#    files = State()
     description = State()
     manager = State()
     designerless = State()
@@ -140,7 +144,7 @@ async def staff_second_level_menu(message : types.Message, state : FSMContext):
 
 async def add_proj(message : types.Message, state : FSMContext):
     await Project.name.set()
-    await message.answer('Название проекта', reply_markup = ReplyKeyboardRemove())
+    await message.answer('Номер договора', reply_markup = ReplyKeyboardRemove())
 
 async def save_proj_name(message : types.Message, state : FSMContext):
     async with state.proxy() as data:
@@ -152,15 +156,26 @@ async def save_proj_description(message : types.Message, state : FSMContext):
     async with state.proxy() as data:
         data['description'] = message.text
     await Project.designerless.set()
-    await message.answer('Делаем скидку 10% по промо (толлько если нет заинтересованного дизайнера)', reply_markup = admin_kb.yes_no_kb)
+    await message.answer('Делаем скидку 10% по промо? (толлько если нет заинтересованного дизайнера)', reply_markup = admin_kb.yes_no_kb)
 
 async def designerless_check(message : types.Message, state : FSMContext):
     async with state.proxy() as data:
         data['designerless'] = 2
         if message.text == 'Да': 
             data['designerless'] = 1
-    await Project.construct.set()
-    await message.answer('Сборка нужна будет?', reply_markup = admin_kb.yes_no_kb)
+    await Project.discount.set()
+    await message.answer('Дополнительная скидка в % (от 0% до 15%)', reply_markup = ReplyKeyboardRemove())
+
+async def discount_value(message : types.Message, state : FSMContext):
+    async with state.proxy() as data:
+        try: data['discount'] = float(message.text.replace('%','').replace(' ','').replace(',','.'))
+        except: data['discount'] = 100
+    if data['discount'] <= 15:
+        await Project.construct.set()
+        await message.answer('Сборка нужна будет?', reply_markup = admin_kb.yes_no_kb)
+    else:
+        await message.answer('Это слишком дофига, мы не сможем себе этого позволить. Скидка должна быть не более 15%')
+        await message.answer('Укажи скидку в % (от 0% до 15%)')
     
 async def construct_check(message : types.Message, state : FSMContext):
     async with state.proxy() as data:
@@ -248,6 +263,7 @@ def register_handlers_managment(dp : Dispatcher):
     dp.register_message_handler(save_proj_name, state = Project.name)
     dp.register_message_handler(save_proj_description, state = Project.description)
     dp.register_message_handler(designerless_check, state = Project.designerless)
+    dp.register_message_handler(discount_value, state = Project.discount)
     dp.register_message_handler(construct_check, state = Project.construct)
     dp.register_message_handler(shipping_check, state = Project.shipping)
     dp.register_message_handler(upshipping_check, state = Project.up_shipping)

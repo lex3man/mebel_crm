@@ -11,6 +11,25 @@ class Bot_config(models.Model):
     def __str__(self):
         return self.bot_name
 
+class Client_contact(models.Model):
+    KITCHEN_TYPES = [
+        ('U', 'Не определился'),
+        ('C', 'Угловая'),
+        ('P', 'П образная'),
+        ('L', 'Прямая'),
+        ('I', 'Островная'),
+    ]
+    caption = models.CharField(verbose_name = 'Текст записи', max_length = 150)
+    name = models.CharField(verbose_name = 'Имя клиента', max_length = 50, default = 'Потенциальный клиент')
+    phone = models.CharField(verbose_name = 'Номер телефона', max_length = 50)
+    kitchen_type = models.CharField(verbose_name = 'Тип кухни', max_length = 2, choices = KITCHEN_TYPES, default = 'U')
+    material = models.CharField(verbose_name = 'Материал фасада', max_length=50, default = 'Помогите выбрать')
+    due_done = models.CharField(verbose_name = 'Когда планирует заказывать', max_length=50, default = 'Просто интересуюсь')
+    pay_type = models.CharField(verbose_name = 'Оплата', max_length=50, default = 'Картой')
+    present = models.CharField(verbose_name = 'Выбранный подарок', max_length=50)
+    def __str__(self):
+        return self.caption
+
 class Gender(models.Model):
     name = models.CharField(max_length = 10)
     code = models.CharField(max_length = 10)

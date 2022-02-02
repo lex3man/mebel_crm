@@ -4,7 +4,7 @@ from unicodedata import name
 from django.http import HttpResponse, request, JsonResponse
 from django.views import View
 import json
-from .models import User, Gender, Position, UserGroup, Tool, Project, Bot_config
+from .models import User, Gender, Position, UserGroup, Tool, Project, Bot_config, Client_contact
 
 def index(request):
     return HttpResponse("CRM система Добромебель")
@@ -54,6 +54,29 @@ class web_hook(View):
         json_body = json.loads(request.body)
         head = json_body.get('head')
 
+        if head == 'new_client':
+            get_name = json_body.get('name')
+            get_phone = json_body.get('phone')
+            get_type = json_body.get('type')
+            get_material = json_body.get('material')
+            get_time = json_body.get('time')
+            get_pay_type = json_body.get('pay')
+            get_present = json_body.get('present')
+
+            new_client = Client_contact(
+                caption = get_name + ' (' + get_phone + ') / ' + str(datetime.now()),
+                name = get_name,
+                phone = get_phone,
+                kitchen_type = get_type,
+                material = get_material,
+                due_done = get_time,
+                pay_type = get_pay_type,
+                present = get_present
+            )
+            new_client.save()
+
+            data = {'msg':'Новая заявка'}
+        
         if head == 'bot_config':
             get_bot_name = json_body.get('bot_name')
             get_config = Bot_config.objects.get(bot_name = get_bot_name)
@@ -129,14 +152,14 @@ class web_hook(View):
                 name = json_body.get('caption'),
                 manager = proj_manager,
                 pub_date = datetime.now(),
-                discount = 0,
+                discount = json_body.get('discount'),
                 map_price = float(json_body.get('total_price')),
-                total_price = float(json_body.get('total_price')) * 2.7
+                total_price = (float(json_body.get('total_price')) * 2.7) / 0.9 * (1 - (json_body.get('discount') / 100))
             )
             add_proj.save()
             if json_body.get('designerless') == 1:
                 add_proj.designerless = True
-                add_proj.total_price = (float(json_body.get('total_price')) * 2.7) * 0.9
+                add_proj.total_price = (float(json_body.get('total_price')) * 2.7) * (1 - (json_body.get('discount') / 100))
             if json_body.get('construct') == 1:
                 add_proj.construct = True
             if json_body.get('shipping') == 1:

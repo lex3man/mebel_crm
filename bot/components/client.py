@@ -5,6 +5,7 @@ from aiogram.types import ReplyKeyboardRemove
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from components.other import Managment, usr_ident
+from components.admin import new_contact
 from keyboards import admin_kb
 from aiogram.dispatcher.filters import Text
 import aiohttp
@@ -53,6 +54,14 @@ async def get_contact(message : types.Message, state : FSMContext):
     async with state.proxy() as data:
         data['order'] = message.contact.phone_number
         data['name'] = message.contact.first_name
+    contact_data = {'name':data['name']}
+    contact_data.update({'phone':data['order']})
+    contact_data.update({'type':'U'})
+    contact_data.update({'material':'Не спрашивали'})
+    contact_data.update({'time':'Не спрашивали'})
+    contact_data.update({'pay':'Не спрашивали'})
+    contact_data.update({'present':'Не спрашивали'})
+    resp_api = await new_contact(contact_data)
     await message.answer('Спасибо! Мы с Вами обязательно свяжемся!', reply_markup = ReplyKeyboardRemove())
     await state.finish()
 

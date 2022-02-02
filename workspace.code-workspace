@@ -2,9 +2,6 @@
 	"folders": [
 		{
 			"path": ".."
-		},
-		{
-			"path": "../../../etc/systemd/system"
 		}
 	],
 	"settings": {}
